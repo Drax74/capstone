@@ -8,7 +8,7 @@ import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 const todosAccess = new TodosAccess()
 
 export async function getAllTodos(userId: string): Promise<TodoItem[]> {
-  return todosAccess.getAllTodos(userId)
+  return await todosAccess.getAllTodos(userId)
 }
 
 export async function createTodo(
