@@ -14,7 +14,7 @@ const userIdIndex = process.env.USER_ID_INDEX
 export class TodosAccess {
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly todosTable = process.env.TODO_TABLE
+    private readonly todosTable = process.env.TODOS_TABLE
   ) {}
 
   async getAllTodos(userId: string): Promise<TodoItem[]> {
