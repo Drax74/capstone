@@ -46,16 +46,19 @@ export class TodosAccess {
     return todoItem
   }
 
-  async deleteTodo(todoId: string, userId: string): Promise<any> {
-    await this.docClient
+  async deleteTodo(todoId: string, userId: string): Promise<TodoItem> {
+    const deletedItem = await this.docClient
       .delete({
         TableName: this.todosTable,
         Key: {
           userId,
           todoId
-        }
+        },
+        ReturnValues: 'ALL_OLD'
       })
       .promise()
+
+    return deletedItem.Attributes as TodoItem
   }
 
   async updateTodo(

@@ -19,14 +19,18 @@ export const handler: APIGatewayProxyHandler = async (
   logger.info('Event: ', event)
   logger.info('Deleting a todo with id: ', todoId)
   // TODO: Remove a TODO item by id
-  await deleteTodo(todoId, getUserId(event))
+  const deletedItem = await deleteTodo(todoId, getUserId(event))
+
+  logger.info('Deleted item: ', deletedItem)
 
   return {
-    statusCode: 204,
+    statusCode: 201,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': true
     },
-    body: null
+    body: JSON.stringify({
+      deletedItem
+    })
   }
 }
