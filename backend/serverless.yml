@@ -4,9 +4,9 @@ service:
 plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
-  - serverless-reqvalidator-plugin
   - serverless-dynamodb-local
   - serverless-offline
+  - serverless-aws-documentation
 
 package:
   individually: true
@@ -53,13 +53,6 @@ custom:
         version: v1.0.0
         title: Todo API
         description: Serverless application for todo items
-    models:
-      - name: CreateTodoRequest
-        contentType: application/json
-        schema: ${file(src/validators/create-todo.json)}
-      - name: UpdateTodoRequest
-        contentType: application/json
-        schema: ${file(src/validators/update-todo.json)}
 
 functions:
   Auth:
@@ -99,12 +92,9 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
-          reqValidatorName: RequestBodyValidator
-          documentation:
-            summary: create a new todo item
-            description: create a new todo item
-            requestModels:
-              'application/json': CreateTodoRequest
+          request:
+            schema:
+              application/json: ${file(src/validators/create-todo.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -126,12 +116,9 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
-          reqValidatorName: RequestBodyValidator
-          documentation:
-            summary: update a todo item
-            description: update a todo item
-            requestModels:
-              'application/json': UpdateTodoRequest
+          request:
+            schema:
+              application/json: ${file(src/validators/update-todo.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -230,15 +217,6 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
-
-    RequestBodyValidator:
-      Type: AWS::ApiGateway::RequestValidator
-      Properties:
-        Name: 'request-body-validator'
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        ValidateRequestBody: true
-        ValidateRequestParameters: true
 
     AttachmentsBucket:
       Type: AWS::S3::Bucket
