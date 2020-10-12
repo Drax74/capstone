@@ -92,12 +92,7 @@ export class TodosAccess {
   async getUploadUrl(todoId: string, userId: string) {
     await this.attachImageURLToTodo(todoId, userId)
     const uploadUrl = this.generatePresignedURL(todoId)
-    return {
-      statusCode: 201,
-      body: JSON.stringify({
-        uploadUrl
-      })
-    }
+    return uploadUrl
   }
 
   async attachImageURLToTodo(todoId: string, userId: string) {
