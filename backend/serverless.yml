@@ -238,7 +238,7 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
-        ValidateRequestParameters: false
+        ValidateRequestParameters: true
 
     AttachmentsBucket:
       Type: AWS::S3::Bucket
