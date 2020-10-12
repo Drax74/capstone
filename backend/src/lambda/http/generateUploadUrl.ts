@@ -14,7 +14,7 @@ export const handler: APIGatewayProxyHandler = async (
   const todoId = event.pathParameters.todoId
 
   // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
-  const uploadURL = getUploadUrl(todoId, getUserId(event))
+  const uploadURL = await getUploadUrl(todoId, getUserId(event))
 
   return {
     statusCode: 201,

@@ -17,7 +17,6 @@ export const handler: APIGatewayProxyHandler = async (
   const todoId = event.pathParameters.todoId
 
   logger.info('Event: ', event)
-  logger.info('Deleting a todo with id: ', todoId)
   // TODO: Remove a TODO item by id
   const deletedItem = await deleteTodo(todoId, getUserId(event))
 
