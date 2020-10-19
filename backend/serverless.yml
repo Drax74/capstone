@@ -88,7 +88,7 @@ functions:
     events:
       - http:
           method: get
-          path: posts/{userId}
+          path: user/{userId}/posts
           authorizer: Auth
           cors: true
     iamRoleStatements:
