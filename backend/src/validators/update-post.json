@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Update todo",
   "type": "object",
   "properties": {
@@ -7,7 +7,8 @@
       "type": "string"
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "minLength": 3
     },
     "tags": {
       "type": "array",
@@ -25,7 +26,7 @@
     {
       "not": {
         "properties": {
-          "public": { "const": "public" }
+          "public": { "enum": ["public"] }
         },
         "required": ["public"]
       }
