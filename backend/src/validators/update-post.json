@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Update todo",
+  "type": "object",
+  "properties": {
+    "public": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "attachmentUrl": {
+      "type": "string"
+    }
+  },
+  "anyOf": [
+    {
+      "not": {
+        "properties": {
+          "public": { "const": "public" }
+        },
+        "required": ["public"]
+      }
+    },
+    { "required": ["description", "tags", "attachmentUrl"] }
+  ],
+  "additionalProperties": false
+}

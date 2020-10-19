@@ -6,17 +6,17 @@ import {
   APIGatewayProxyResult
 } from 'aws-lambda'
 
-import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
-import { createTodo } from '../../businessLogic/todos'
+import { UpdatePostRequest } from '../../requests/UpdatePostRequest'
+import { updatePost } from '../../businessLogic/posts'
 import { getUserId } from '../utils'
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const newTodo: CreateTodoRequest = JSON.parse(event.body)
+  const postId = event.pathParameters.postId
+  const updatedPost: UpdatePostRequest = JSON.parse(event.body)
 
-  // TODO: Implement creating a new TODO item
-  const item = await createTodo(newTodo, getUserId(event))
+  const post = await updatePost(updatedPost, getUserId(event), postId)
 
   return {
     statusCode: 201,
@@ -24,8 +24,6 @@ export const handler: APIGatewayProxyHandler = async (
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': true
     },
-    body: JSON.stringify({
-      item
-    })
+    body: JSON.stringify({ post })
   }
 }

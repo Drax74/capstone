@@ -1,17 +1,17 @@
 # Functionality of the application
 
-This application will allow creating/removing/updating/fetching TODO items. Each TODO item can optionally have an attachment image. Each user only has access to TODO items that he/she has created.
+This application will allow creating/removing/updating/fetching POST items. Each POST item can have an attachment image, description, tags and can be published for public viewing. Each user has access to all public POSTS and all private and public POSTS that he/she has created.
 
-# TODO items
+# POST items
 
-The application stores TODO items, and each TODO item contains the following fields:
+The application stores POST items, and each POST item contains the following fields:
 
-- `todoId` (string) - a unique id for an item
-- `userId` (string) - a unique id of a user who created a TODO item
+- `postId` (string) - a unique id for an item
+- `userId` (string) - a unique id of a user who created a POST item
 - `createdAt` (string) - date and time when an item was created
-- `name` (string) - name of a TODO item (e.g. "Change a light bulb")
-- `dueDate` (string) - date and time by which an item should be completed
-- `done` (boolean) - true if an item was completed, false otherwise
+- `description` (string) - description of a POST item (e.g. "Change a light bulb")
+- `tags` (string[]) - array of strings
+- `public` (string) - public or private status
 - `attachmentUrl` (string) (optional) - a URL pointing to an image attached to a TODO item
 
 # Frontend

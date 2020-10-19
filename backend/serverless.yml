@@ -1,5 +1,5 @@
 service:
-  name: serverless-todo-app
+  name: serverless-capstone-app
 
 plugins:
   - serverless-webpack
@@ -24,9 +24,9 @@ provider:
 
   environment:
     AUTH0_JWKS_URL: https://dev-35u5rsu8.eu.auth0.com/.well-known/jwks.json
-    TODOS_TABLE: Todos-v01-${self:provider.stage}
-    USER_ID_INDEX: UserIdIndex
-    IMAGES_S3_BUCKET: serverless-todo-images-${self:provider.stage}
+    POSTS_TABLE: Posts-${self:provider.stage}
+    POSTS_BY_STATUS_INDEX: PostsByStatus
+    IMAGES_S3_BUCKET: serverless-capstone-images-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
   iamRoleStatements:
@@ -51,31 +51,30 @@ custom:
     api:
       info:
         version: v1.0.0
-        title: Todo API
-        description: Serverless application for todo items
+        title: Capstone API
+        description: Serverless application
 
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
-  # TODO: Configure this function
-  GetTodos:
-    handler: src/lambda/http/getTodos.handler
+  GetAllPublicPosts:
+    handler: src/lambda/http/getAllPublicPosts.handler
     events:
       - http:
           method: get
-          path: todos
+          path: posts
           authorizer: Auth
           cors: true
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}/index/${self:provider.environment.POSTS_BY_STATUS_INDEX}
       - Effect: 'Allow'
         Action:
           - 'xray:PutTraceSegments'
@@ -83,23 +82,39 @@ functions:
         Resource:
           - '*'
 
-  # TODO: Configure this function
-  CreateTodo:
-    handler: src/lambda/http/createTodo.handler
+  GetAllUserPosts:
+    handler: src/lambda/http/getAllUserPosts.handler
+    events:
+      - http:
+          method: get
+          path: posts/{userId}
+          authorizer: Auth
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+      - Effect: 'Allow'
+        Action:
+          - 'xray:PutTraceSegments'
+          - 'xray:PutTelemetryRecords'
+        Resource:
+          - '*'
+
+  CreatePost:
+    handler: src/lambda/http/createPost.handler
     events:
       - http:
           method: post
-          path: todos
+          path: posts
           authorizer: Auth
           cors: true
-          request:
-            schema:
-              application/json: ${file(src/validators/create-todo.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: 'Allow'
         Action:
           - 'xray:PutTraceSegments'
@@ -107,23 +122,22 @@ functions:
         Resource:
           - '*'
 
-  # TODO: Configure this function
-  UpdateTodo:
-    handler: src/lambda/http/updateTodo.handler
+  UpdatePost:
+    handler: src/lambda/http/updatePost.handler
     events:
       - http:
           method: patch
-          path: todos/{todoId}
+          path: posts/{postId}
           authorizer: Auth
           cors: true
           request:
             schema:
-              application/json: ${file(src/validators/update-todo.json)}
+              application/json: ${file(src/validators/update-post.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: 'Allow'
         Action:
           - 'xray:PutTraceSegments'
@@ -131,20 +145,19 @@ functions:
         Resource:
           - '*'
 
-  # TODO: Configure this function
-  DeleteTodo:
-    handler: src/lambda/http/deleteTodo.handler
+  DeletePost:
+    handler: src/lambda/http/deletePost.handler
     events:
       - http:
           method: delete
-          path: todos/{todoId}
+          path: posts/{postId}
           authorizer: Auth
           cors: true
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: 'Allow'
         Action:
           - 'xray:PutTraceSegments'
@@ -152,13 +165,12 @@ functions:
         Resource:
           - '*'
 
-  # TODO: Configure this function
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
       - http:
           method: post
-          path: todos/{todoId}/attachment
+          path: posts/{postId}/attachment
           authorizer: Auth
           cors: true
     iamRoleStatements:
@@ -169,7 +181,7 @@ functions:
       - Effect: 'Allow'
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: 'Allow'
         Action:
           - 'xray:PutTraceSegments'
@@ -177,9 +189,17 @@ functions:
         Resource:
           - '*'
 
+  SyncWithElasticsearch:
+    environment:
+      ES_ENDPOINT: !GetAtt PostsSearch.DomainEndpoint
+    handler: src/lambda/dynamoDb/elasticSearchSync.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt PostsDynamoDBTable.StreamArn
+
 resources:
   Resources:
-    # TODO: Add any necessary AWS resources
     GatewayResponseDefault4XX:
       Type: AWS::ApiGateway::GatewayResponse
       Properties:
@@ -191,29 +211,33 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
 
-    TodosDynamoDBTable:
+    PostsDynamoDBTable:
       Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: userId
+          - AttributeName: PK
             AttributeType: S
-          - AttributeName: todoId
+          - AttributeName: SK
             AttributeType: S
-          - AttributeName: createdAt
+          - AttributeName: itemType
+            AttributeType: S
+          - AttributeName: publicPostId
             AttributeType: S
         KeySchema:
-          - AttributeName: todoId
+          - AttributeName: PK
             KeyType: HASH
-          - AttributeName: userId
+          - AttributeName: SK
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TODOS_TABLE}
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        TableName: ${self:provider.environment.POSTS_TABLE}
         GlobalSecondaryIndexes:
-          - IndexName: ${self:provider.environment.USER_ID_INDEX}
+          - IndexName: ${self:provider.environment.POSTS_BY_STATUS_INDEX}
             KeySchema:
-              - AttributeName: userId
+              - AttributeName: itemType
                 KeyType: HASH
-              - AttributeName: createdAt
+              - AttributeName: publicPostId
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
@@ -249,3 +273,28 @@ resources:
               Action: 's3:GetObject'
               Resource: 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
         Bucket: !Ref AttachmentsBucket
+
+    PostsSearch:
+      Type: AWS::Elasticsearch::Domain
+      Properties:
+        ElasticsearchVersion: '6.3'
+        DomainName: posts-search-${self:provider.stage}
+        ElasticsearchClusterConfig:
+          DedicatedMasterEnabled: false
+          InstanceCount: '1'
+          ZoneAwarenessEnabled: false
+          InstanceType: t2.small.elasticsearch
+        EBSOptions:
+          EBSEnabled: true
+          Iops: 0
+          VolumeSize: 10
+          VolumeType: 'gp2'
+
+        AccessPolicies:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: '*'
+              Action: 'es:*'
+              Resource: '*'
