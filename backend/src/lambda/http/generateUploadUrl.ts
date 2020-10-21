@@ -12,7 +12,10 @@ export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const postId = event.pathParameters.postId
-  const uploadUrl = await getUploadUrl(postId, getUserId(event))
+  const { uploadUrl, attachmentUrl } = await getUploadUrl(
+    postId,
+    getUserId(event)
+  )
 
   return {
     statusCode: 201,
@@ -21,6 +24,6 @@ export const handler: APIGatewayProxyHandler = async (
       'Access-Control-Allow-Credentials': true,
       'Access-Control-Request-Method': 'POST'
     },
-    body: JSON.stringify({ uploadUrl })
+    body: JSON.stringify({ uploadUrl, attachmentUrl })
   }
 }

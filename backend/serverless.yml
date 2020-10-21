@@ -88,13 +88,33 @@ functions:
     events:
       - http:
           method: get
-          path: user/{userId}/posts
+          path: user/posts
           authorizer: Auth
           cors: true
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+      - Effect: 'Allow'
+        Action:
+          - 'xray:PutTraceSegments'
+          - 'xray:PutTelemetryRecords'
+        Resource:
+          - '*'
+
+  GetUserPost:
+    handler: src/lambda/http/getUserPost.handler
+    events:
+      - http:
+          method: get
+          path: user/posts/{postId}
+          authorizer: Auth
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: 'Allow'
         Action:
@@ -111,6 +131,9 @@ functions:
           path: posts
           authorizer: Auth
           cors: true
+          request:
+            schema:
+              application/json: ${file(src/validators/create-post.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -131,9 +154,29 @@ functions:
           path: posts/{postId}
           authorizer: Auth
           cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+      - Effect: 'Allow'
+        Action:
+          - 'xray:PutTraceSegments'
+          - 'xray:PutTelemetryRecords'
+        Resource:
+          - '*'
+
+  PublishPost:
+    handler: src/lambda/http/publishPost.handler
+    events:
+      - http:
+          method: patch
+          path: posts/publish/{postId}
+          authorizer: Auth
+          cors: true
           request:
             schema:
-              application/json: ${file(src/validators/update-post.json)}
+              application/json: ${file(src/validators/publish-post.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -195,12 +238,22 @@ functions:
     events:
       - websocket:
           route: $connect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
 
   DisconnectHandler:
     handler: src/lambda/websocket/disconnect.handler
     events:
       - websocket:
           route: $disconnect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
 
   # SyncWithElasticsearch:
   #   environment:

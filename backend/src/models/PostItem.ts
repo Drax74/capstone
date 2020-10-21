@@ -3,6 +3,7 @@ export interface PostItem {
   SK: string
   userId: string
   postId: string
+  title: string
   createdAt: string
   public: string
   itemType: string

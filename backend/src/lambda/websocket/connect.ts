@@ -5,25 +5,27 @@ import {
 } from 'aws-lambda'
 import 'source-map-support/register'
 import * as AWS from 'aws-sdk'
+import { createLogger } from '../../utils/logger'
 
 const docClient = new AWS.DynamoDB.DocumentClient()
 
 const connectionsTable = process.env.CONNECTIONS_TABLE
+const logger = createLogger('websocket')
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log('Websocket connect', event)
+  logger.info('Websocket Event: ', event)
 
   const connectionId = event.requestContext.connectionId
+  const userId = event.queryStringParameters.userId
   const timestamp = new Date().toISOString()
 
   const item = {
-    userId: timestamp,
-    id: connectionId
+    userId,
+    id: connectionId,
+    timestamp
   }
-
-  console.log('Storing item: ', item)
 
   await docClient
     .put({

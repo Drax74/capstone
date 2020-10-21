@@ -1,9 +1,7 @@
-/**
- * Fields in a request to update a single POST item.
- */
 export interface UpdatePostRequest {
+  postId: string
   title: string
   description: string
-  public: string
   tags: string[]
+  public: string
 }

@@ -3,10 +3,9 @@ import { Link, Route, Router, Switch } from 'react-router-dom'
 import { Grid, Menu, Segment } from 'semantic-ui-react'
 
 import Auth from './auth/Auth'
-import { EditTodo } from './components/EditTodo'
-import { LogIn } from './components/LogIn'
 import { NotFound } from './components/NotFound'
-import { Todos } from './components/Todos'
+import { Newsfeed } from './components/Newsfeed'
+import { MyPosts } from './components/MyPosts'
 
 export interface AppProps {}
 
@@ -15,7 +14,10 @@ export interface AppProps {
   history: any
 }
 
-export interface AppState {}
+export interface AppState {
+  tokenRenewed: boolean
+  openNewPostModal: boolean
+}
 
 export default class App extends Component<AppProps, AppState> {
   constructor(props: AppProps) {
@@ -23,6 +25,17 @@ export default class App extends Component<AppProps, AppState> {
 
     this.handleLogin = this.handleLogin.bind(this)
     this.handleLogout = this.handleLogout.bind(this)
+  }
+
+  state: AppState = {
+    tokenRenewed: false,
+    openNewPostModal: false
+  }
+
+  componentDidMount() {
+    this.props.auth.renewSession(() => {
+      this.setState({ tokenRenewed: true })
+    })
   }
 
   handleLogin() {
@@ -34,15 +47,16 @@ export default class App extends Component<AppProps, AppState> {
   }
 
   render() {
+    if (!this.state.tokenRenewed) return 'loading...'
+    const userAuthenticated = this.props.auth.isAuthenticated()
     return (
       <div>
-        <Segment style={{ padding: '8em 0em' }} vertical>
+        <Segment vertical>
           <Grid container stackable verticalAlign="middle">
             <Grid.Row>
               <Grid.Column width={16}>
                 <Router history={this.props.history}>
-                  {this.generateMenu()}
-
+                  {this.generateMenu(userAuthenticated)}
                   {this.generateCurrentPage()}
                 </Router>
               </Grid.Column>
@@ -53,20 +67,26 @@ export default class App extends Component<AppProps, AppState> {
     )
   }
 
-  generateMenu() {
+  generateMenu(userAuthenticated: boolean) {
     return (
-      <Menu>
+      <Menu pointing secondary>
         <Menu.Item name="home">
           <Link to="/">Home</Link>
         </Menu.Item>
-
-        <Menu.Menu position="right">{this.logInLogOutButton()}</Menu.Menu>
+        {userAuthenticated && (
+          <Menu.Item name="my posts">
+            <Link to="/user/posts">My posts</Link>
+          </Menu.Item>
+        )}
+        <Menu.Menu position="right">
+          {this.logInLogOutButton(userAuthenticated)}
+        </Menu.Menu>
       </Menu>
     )
   }
 
-  logInLogOutButton() {
-    if (this.props.auth.isAuthenticated()) {
+  logInLogOutButton(userAuthenticated: boolean) {
+    if (userAuthenticated) {
       return (
         <Menu.Item name="logout" onClick={this.handleLogout}>
           Log Out
@@ -82,25 +102,21 @@ export default class App extends Component<AppProps, AppState> {
   }
 
   generateCurrentPage() {
-    if (!this.props.auth.isAuthenticated()) {
-      return <LogIn auth={this.props.auth} />
-    }
-
     return (
       <Switch>
         <Route
           path="/"
           exact
           render={props => {
-            return <Todos {...props} auth={this.props.auth} />
+            return <Newsfeed {...props} auth={this.props.auth} />
           }}
         />
 
         <Route
-          path="/todos/:todoId/edit"
+          path="/user/posts"
           exact
           render={props => {
-            return <EditTodo {...props} auth={this.props.auth} />
+            return <MyPosts {...props} auth={this.props.auth} />
           }}
         />
 

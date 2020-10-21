@@ -11,20 +11,7 @@ import { getUserId } from '../utils'
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const userId = event.pathParameters.userId
-  const authorizedUser = getUserId(event)
-  if (userId !== authorizedUser) {
-    return {
-      statusCode: 403,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true
-      },
-      body: null
-    }
-  }
-
-  const posts = await getAllUserPosts(authorizedUser)
+  const posts = await getAllUserPosts(getUserId(event))
 
   return {
     statusCode: 200,

@@ -9,6 +9,9 @@ import {
 import { UpdatePostRequest } from '../../requests/UpdatePostRequest'
 import { updatePost } from '../../businessLogic/posts'
 import { getUserId } from '../utils'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger('update')
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
@@ -16,7 +19,11 @@ export const handler: APIGatewayProxyHandler = async (
   const postId = event.pathParameters.postId
   const updatedPost: UpdatePostRequest = JSON.parse(event.body)
 
-  const post = await updatePost(updatedPost, getUserId(event), postId)
+  logger.info('Event: ', event)
+
+  const post = await updatePost(updatedPost, postId, getUserId(event))
+
+  logger.info('Updated post: ', post)
 
   return {
     statusCode: 201,

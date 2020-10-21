@@ -6,6 +6,9 @@ const XAWS = AWSXRay.captureAWS(AWS)
 
 import { PostItem } from '../models/PostItem'
 import { PostUpdate } from '../models/PostUpdate'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('DB access')
 
 const s3bucket = process.env.IMAGES_S3_BUCKET
 const presignedUrlExpiration = process.env.SIGNED_URL_EXPIRATION
@@ -18,8 +21,6 @@ export class PostsAccess {
   ) {}
 
   async getAllPublicPosts(): Promise<PostItem[]> {
-    console.log('Getting all public posts')
-
     const params = {
       TableName: this.postsTable,
       IndexName: postsByStatusIndex,
@@ -35,7 +36,6 @@ export class PostsAccess {
   }
 
   async getAllUserPosts(userId: string): Promise<PostItem[]> {
-    console.log('Getting all user posts')
     const params = {
       TableName: this.postsTable,
       KeyConditionExpression: 'PK = :PK',
@@ -45,6 +45,18 @@ export class PostsAccess {
     }
     const result = await this.docClient.query(params).promise()
     return result.Items as PostItem[]
+  }
+
+  async getUserPost(userId: string, postId: string): Promise<PostItem> {
+    const params = {
+      TableName: this.postsTable,
+      Key: {
+        PK: `USER#${userId}`,
+        SK: `POST#${postId}`
+      }
+    }
+    const result = await this.docClient.get(params).promise()
+    return result.Item as PostItem
   }
 
   async createPost(postItem: PostItem): Promise<PostItem> {
@@ -83,11 +95,13 @@ export class PostsAccess {
         SK: `POST#${postId}`
       },
       UpdateExpression:
-        'set description = :description, #p = :public, publicPostId = :publicPostId, tags =: tags',
+        'set #t = :title, description = :description, #p = :public, publicPostId = :publicPostId, tags = :tags',
       ExpressionAttributeNames: {
-        '#p': 'public'
+        '#p': 'public',
+        '#t': 'title'
       },
       ExpressionAttributeValues: {
+        ':title': postUpdated.title,
         ':description': postUpdated.description,
         ':public': postUpdated.public,
         ':tags': postUpdated.tags,
@@ -101,30 +115,60 @@ export class PostsAccess {
 
     const updatedPost = await this.docClient.update(params).promise()
 
+    logger.info('Updated post: ', updatedPost)
+
     return updatedPost.Attributes as PostItem
   }
 
+  async publishPost(postId: string, userId: string): Promise<PostItem> {
+    const params = {
+      TableName: this.postsTable,
+      Key: {
+        PK: `USER#${userId}`,
+        SK: `POST#${postId}`
+      },
+      UpdateExpression: 'set #p = :public, publicPostId = :publicPostId',
+      ExpressionAttributeNames: {
+        '#p': 'public'
+      },
+      ExpressionAttributeValues: {
+        ':public': 'public',
+        ':publicPostId': `public#${postId}`
+      },
+      ReturnValues: 'ALL_NEW'
+    }
+
+    const publishedPost = await this.docClient.update(params).promise()
+
+    logger.info('Updated post: ', publishedPost)
+
+    return publishedPost.Attributes as PostItem
+  }
+
   async getUploadUrl(postId: string, userId: string) {
-    await this.attachImageURLToPost(postId, userId)
+    const attachmentUrl = await this.attachImageURLToPost(postId, userId)
     const uploadUrl = this.generatePresignedURL(postId)
-    return uploadUrl
+    return { uploadUrl, attachmentUrl }
   }
 
   async attachImageURLToPost(postId: string, userId: string) {
+    const attachmentUrl = `https://${s3bucket}.s3.amazonaws.com/${postId}`
     await this.docClient
       .update({
         TableName: this.postsTable,
         Key: {
-          userId: userId,
-          postId: postId
+          PK: `USER#${userId}`,
+          SK: `POST#${postId}`
         },
         UpdateExpression: 'set attachmentUrl = :attachmentUrl',
         ExpressionAttributeValues: {
-          ':attachmentUrl': `https://${s3bucket}.s3.amazonaws.com/${postId}`
+          ':attachmentUrl': attachmentUrl
         },
         ReturnValues: 'ALL_NEW'
       })
       .promise()
+
+    return attachmentUrl
   }
 
   generatePresignedURL(postId: string) {
@@ -143,7 +187,6 @@ export class PostsAccess {
 
 function createDynamoDBClient() {
   if (process.env.IS_OFFLINE) {
-    console.log('Creating a local DynamoDB instance')
     return new XAWS.DynamoDB.DocumentClient({
       region: 'localhost',
       endpoint: 'http://localhost:8000'
