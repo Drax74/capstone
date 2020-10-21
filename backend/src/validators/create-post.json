@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Create post",
+  "type": "object",
+  "properties": {
+    "title": { "$ref": "#/definitions/non-empty-string" }
+  },
+  "anyOf": [{ "required": ["title"] }],
+  "definitions": {
+    "non-empty-string": {
+      "type": "string",
+      "minLength": 3
+    }
+  },
+  "additionalProperties": false
+}
